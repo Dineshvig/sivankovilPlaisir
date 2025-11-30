@@ -117,7 +117,7 @@ body {
     font-weight: 500;
     transition: all 0.5s ease;
     position: relative;
-    padding: 8px 0;
+    padding: 9px 0;
 }
 
 .nav-link::after {
@@ -210,7 +210,7 @@ body {
 /* Decorative Border */
 .decorative-border {
     width: 200px;
-    height: 4px;
+    height: 3px;
     background: linear-gradient(90deg, var(--saffron) 0%, var(--gold) 50%, var(--saffron) 100%);
     margin: 30px auto;
     position: relative;
@@ -263,7 +263,7 @@ body {
 .welcome-text {
     font-size: 1.2rem;
     color: var(--medium-gray);
-    line-height: 1.8;
+    line-height: 1.5;
     margin-bottom: 30px;
 }
 
