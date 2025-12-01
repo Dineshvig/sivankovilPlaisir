@@ -1,0 +1,159 @@
+        <div class="mt-auto pt-6 border-t border-deep_maroon/20">
+            <h3 class="text-lg font-semibold text-deep_maroon mb-3 flex items-center space-x-2">
+                <i data-lucide="globe" class="h-5 w-5"></i>
+                <span>Language / மொழி</span>
+            </h3>
+            <div class="flex flex-col space-y-2">
+                   <button class="lang-option w-full text-left p-3 rounded-lg hover:bg-deep_maroon/10 transition-colors flex items-center space-x-3 text-deep_maroon font-semibold" data-lang="ta">
+                    <span>🇮🇳</span>
+                    <span>தமிழ்</span>
+                </button>
+                <button class="lang-option w-full text-left p-3 rounded-lg hover:bg-deep_maroon/10 transition-colors flex items-center space-x-3 text-deep_maroon font-semibold" data-lang="fr">
+                    <span>🇫🇷</span>
+                    <span>Français</span>
+                </button>
+                <button class="lang-option w-full text-left p-3 rounded-lg hover:bg-deep_maroon/10 transition-colors flex items-center space-x-3 text-deep_maroon font-semibold" data-lang="en">
+                    <span>🇬🇧</span>
+                    <span>English</span>
+                </button>
+                
+                
+            </div>
+        </div>
+        </div>
+    <div id="mobile-menu-overlay" class="hidden fixed inset-0 bg-black/50 z-[60] md:hidden"></div>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mcstudios/glightbox/dist/js/glightbox.min.js"></script>
+    <script src="js/language-manager.js"></script>
+    <script src="js/temple-utils.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            
+            const menuBtn = document.getElementById('mobile-menu-btn');
+            const closeMenuBtn = document.getElementById('mobile-menu-close-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const overlay = document.getElementById('mobile-menu-overlay');
+
+            const openMenu = () => {
+                mobileMenu.classList.add('active');
+                overlay.classList.remove('hidden');
+            };
+
+            const closeMenu = () => {
+                mobileMenu.classList.remove('active');
+                overlay.classList.add('hidden');
+            };
+
+            if(menuBtn) menuBtn.addEventListener('click', openMenu);
+            if(closeMenuBtn) closeMenuBtn.addEventListener('click', closeMenu);
+            if(overlay) overlay.addEventListener('click', closeMenu);
+        });
+    </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"d45a5f5905334887832cfc9f4d345416","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
+const LANGUAGE_PATH = "lang/";
+const DEFAULT_LANG = "ta";
+
+class LanguageManager {
+  constructor() {
+    this.translations = {};
+    this.currentLang = localStorage.getItem("lang") || DEFAULT_LANG;
+  }
+
+  async loadLanguage(lang) {
+    try {
+      const response = await fetch(`${LANGUAGE_PATH}${lang}.txt`);
+      if (!response.ok) {
+          throw new Error(`Failed to load language file: ${response.statusText}`);
+      }
+      const text = await response.text();
+      this.translations = this.parseTranslations(text);
+      this.currentLang = lang;
+      localStorage.setItem("lang", lang);
+      this.updateUI();
+
+      // Fire an event that other scripts can listen to
+      window.dispatchEvent(new CustomEvent("languageChanged", {
+        detail: { language: lang }
+      }));
+    } catch (e) {
+      console.error("Failed to load language file:", e);
+    }
+  }
+
+  parseTranslations(text) {
+    const lines = text.split("\n");
+    const result = {};
+    for (let line of lines) {
+      if (!line || line.startsWith("#")) continue;
+      const [key, ...rest] = line.split("=");
+      if (key && rest.length > 0) {
+        result[key.trim()] = rest.join("=").trim();
+      }
+    }
+    return result;
+  }
+
+  getTranslation(key, fallback = "") {
+    return this.translations[key] || fallback;
+  }
+
+  updateUI() {
+    document.querySelectorAll("[data-translate]").forEach((el) => {
+      const key = el.getAttribute("data-translate");
+      const translated = this.getTranslation(key, el.textContent);
+      el.textContent = translated;
+    });
+
+    const langSpan = document.getElementById("current-lang");
+    if (langSpan) {
+      langSpan.textContent = this.currentLang.toUpperCase();
+    }
+    
+    // --- THIS IS THE FIX ---
+    // After changing all the text, redraw the Lucide icons.
+    // A small delay ensures the DOM has updated.
+    setTimeout(() => {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }, 50);
+  }
+}
+
+// Initialize the language manager
+window.languageManager = new LanguageManager();
+
+document.addEventListener("DOMContentLoaded", () => {
+  const langManager = window.languageManager;
+  // Load initial language
+  langManager.loadLanguage(langManager.currentLang);
+
+  // --- Dropdown Menu Logic ---
+  const langButton = document.getElementById("language-btn");
+  const dropdown = document.getElementById("language-dropdown");
+
+  if (langButton && dropdown) {
+    langButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle("hidden");
+    });
+
+    document.querySelectorAll(".lang-option").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const selectedLang = el.getAttribute("data-lang");
+        langManager.loadLanguage(selectedLang);
+        dropdown.classList.add("hidden");
+      });
+    });
+
+    document.addEventListener("click", () => {
+      dropdown.classList.add("hidden");
+    });
+  }
+});
